@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Training Log</title>
+
+<!-- PWA / Add to Home Screen support -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0E1B14" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Training Log" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="icon" href="icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1B14;
+    --surface: #16261C;
+    --surface2: #1E3327;
+    --line: #2C4536;
+    --chalk: #F2F1E8;
+    --muted: #9CB0A2;
+    --floodlight: #E8A33D;
+    --floodlight-bright: #F4C567;
+    --leather: #C08552;
+    --danger: #C2542F;
+    --sage: #7FBF9B;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--chalk);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .gf-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em; }
+  #app { max-width: 720px; margin: 0 auto; padding: clamp(12px, 4vw, 28px); padding-bottom: 60px; }
+
+  button { cursor: pointer; border: none; font-family: inherit; background: none; color: inherit; transition: background 150ms ease, opacity 150ms ease, border-color 150ms ease; }
+  button:disabled { cursor: not-allowed; opacity: 0.45; }
+  input, textarea { font-family: inherit; }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--floodlight); outline-offset: 1px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  h1 { font-size: 22px; font-weight: 700; margin: 0; color: var(--chalk); }
+
+  .pitch-bar { position: relative; width: 100%; border-radius: 3px; overflow: visible;
+    background: repeating-linear-gradient(90deg, var(--surface) 0px, var(--surface) 22px, var(--surface2) 22px, var(--surface2) 44px);
+    border: 1px solid var(--line); }
+  .pitch-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; border-radius: 3px;
+    background: linear-gradient(90deg, var(--floodlight), var(--floodlight-bright)); transition: width 400ms ease; }
+  .pitch-bar-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); border-radius: 50%;
+    background: var(--chalk); border: 2px solid var(--bg); transition: left 400ms ease; }
+
+  .stat-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; flex: 1 1 130px; min-width: 130px; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 600; color: var(--chalk); }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .tab-btn { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 14px; font-weight: 500; color: var(--muted); }
+  .tab-btn.active { color: var(--chalk); border-bottom-color: var(--floodlight); font-weight: 600; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; }
+  .muted { color: var(--muted); }
+  .field-label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .gf-input { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 4px; color: var(--chalk); padding: 8px 10px; font-size: 14px; }
+
+  .btn-primary { background: var(--floodlight); color: var(--bg); padding: 10px 20px; border-radius: 4px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--chalk); padding: 10px 18px; border-radius: 4px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-quiet { background: var(--surface2); border: 1px solid var(--line); color: var(--muted); padding: 6px 10px; border-radius: 3px; font-size: 12px; }
+  .btn-icon { background: transparent; color: var(--muted); padding: 4px; }
+
+  .chip { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); color: var(--chalk); padding: 8px 12px; border-radius: 3px; font-size: 13px; opacity: 0.75; }
+  .chip.selected { background: var(--surface2); opacity: 1; }
+
+  .goal-card, .session-row { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  .goal-card { padding: 16px; }
+  .session-row { border-radius: 4px; padding: 10px 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+
+  .delete-confirm { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .delete-confirm button.yes { background: var(--danger); color: var(--chalk); padding: 5px 10px; border-radius: 3px; font-weight: 600; }
+  .delete-confirm button.no { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 5px 10px; border-radius: 3px; }
+
+  .split-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .split-row .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .split-row label { flex: 1; font-size: 13px; }
+  .split-row input { width: 84px; text-align: right; }
+
+  svg.icon { display: block; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+'use strict';
+
+/* ---------------------------------------------------------------------- */
+/* Constants                                                               */
+/* ---------------------------------------------------------------------- */
+
+const CATEGORIES = [
+  { id: 'kicking',      label: 'Kicking & scoring',           color: '#E8A33D' },
+  { id: 'handpass',     label: 'Hand-passing',                color: '#C08552' },
+  { id: 'solo',         label: 'Solo running & foot skills',  color: '#6FAE8A' },
+  { id: 'fielding',     label: 'High fielding',               color: '#5FA8B8' },
+  { id: 'blocking',     label: 'Blocking & hooking',          color: '#C2542F' },
+  { id: 'tackling',     label: 'Tackling & contact',          color: '#7C8FA6' },
+  { id: 'conditioning', label: 'Conditioning & S&C',          color: '#8FA68F' },
+  { id: 'match',        label: 'Match play',                  color: '#F4C567' },
+  { id: 'tactical',     label: 'Tactical & video',             color: '#6E7C87' },
+  { id: 'team',         label: 'Team training',                color: '#A67C52' },
+];
+
+const DEFAULT_TARGET_HOURS = 1000;
+const STORAGE_KEY = 'gfTrainingLog_v1';
+
+/* ---------------------------------------------------------------------- */
+/* Icons (small inline SVGs, no external dependency)                       */
+/* ---------------------------------------------------------------------- */
+
+function icon(name, size) {
+  size = size || 15;
+  const paths = {
+    play: '<polygon points="5,3 19,12 5,21"/>',
+    pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+    flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/>',
+    trash: '<path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" fill="none" stroke="currentColor" stroke-width="2"/><line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" stroke-width="2"/><line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" stroke-width="2"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2"/>',
+    download: '<path d="M12 3v12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21h16" fill="none" stroke="currentColor" stroke-width="2"/>',
+    upload: '<path d="M12 21V9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 3h16" fill="none" stroke="currentColor" stroke-width="2"/>',
+    trophy: '<path d="M8 21h8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 17v4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5H4a3 3 0 0 0 3 3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 5h3a3 3 0 0 1-3 3" fill="none" stroke="currentColor" stroke-width="2"/>',
+    target: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+    trending: '<polyline points="3 17 9 11 13 15 21 6" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14 6 21 6 21 13" fill="none" stroke="currentColor" stroke-width="2"/>',
+    list: '<path d="M3 6l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 14l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2"/><line x1="13" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/><line x1="13" y1="14" x2="21" y2="14" stroke="currentColor" stroke-width="2"/>',
+    clock: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="12 7 12 12 15 15" fill="none" stroke="currentColor" stroke-width="2"/>',
+    check: '<polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2"/>',
+  };
+  return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24">${paths[name] || ''}</svg>`;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Helpers                                                                 */
+/* ---------------------------------------------------------------------- */
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function categoryOf(id) {
+  return CATEGORIES.find((c) => c.id === id) || { id: 'other', label: 'Uncategorised', color: '#9CB0A2' };
+}
+
+function sessionCategories(s) {
+  if (Array.isArray(s.categories) && s.categories.length) return s.categories;
+  if (s.category) return [s.category];
+  return [];
+}
+
+function formatHMS(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+function fmtDurationShort(seconds) {
+  const totalMin = Math.round(seconds / 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function fmtHours(hoursFloat, decimals) {
+  decimals = decimals == null ? 1 : decimals;
+  if (!isFinite(hoursFloat)) return '0';
+  if (Math.abs(hoursFloat - Math.round(hoursFloat)) < 0.05) {
+    return Math.round(hoursFloat).toLocaleString();
+  }
+  return hoursFloat.toLocaleString(undefined, { maximumFractionDigits: decimals });
+}
+
+function localDateKey(d) {
+  d = d || new Date();
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${yr}-${mo}-${da}`;
+}
+
+function addDaysToKey(dateKey, days) {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return localDateKey(d);
+}
+
+function addMonthsToKey(dateKey, months) {
+  const d = new Date(dateKey + 'T00:00:00');
+  d.setMonth(d.getMonth() + months);
+  return localDateKey(d);
+}
+
+function startOfWeekMonday(d) {
+  d = d || new Date();
+  const day = (d.getDay() + 6) % 7;
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  r.setDate(r.getDate() - day);
+  return r;
+}
+
+function startOfMonthDate(d) {
+  d = d || new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function diffDaysInclusive(startKey, endKey) {
+  const a = new Date(startKey + 'T00:00:00');
+  const b = new Date(endKey + 'T00:00:00');
+  return Math.round((b - a) / 86400000) + 1;
+}
+
+function clamp(x, lo, hi) {
+  return Math.min(hi, Math.max(lo, x));
+}
+
+function fmtDateLabel(dateKey) {
+  const today = localDateKey();
+  const yesterday = localDateKey(new Date(Date.now() - 86400000));
+  if (dateKey === today) return 'Today';
+  if (dateKey === yesterday) return 'Yesterday';
+  const d = new Date(dateKey + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function computeGoalProgress(g, sessions) {
+  const hoursLogged = sessions
+    .filter((s) => {
+      const key = localDateKey(new Date(s.date));
+      return key >= g.startDate && key <= g.endDate;
+    })
+    .reduce((a, s) => a + s.durationSeconds, 0) / 3600;
+  const pct = g.targetHours > 0 ? (hoursLogged / g.targetHours) * 100 : 0;
+  const todayKey = localDateKey();
+  const daysTotal = diffDaysInclusive(g.startDate, g.endDate);
+  const daysElapsed = clamp(diffDaysInclusive(g.startDate, todayKey), 0, daysTotal);
+  const daysLeft = Math.max(0, diffDaysInclusive(todayKey, g.endDate) - 1);
+  const complete = hoursLogged >= g.targetHours;
+  const ended = todayKey > g.endDate;
+  const active = todayKey >= g.startDate && todayKey <= g.endDate;
+  const expectedByNow = g.targetHours * (daysElapsed / daysTotal);
+  const onTrack = hoursLogged >= expectedByNow;
+  const hoursPerWeekNeeded = daysLeft > 0 ? ((g.targetHours - hoursLogged) / daysLeft) * 7 : 0;
+
+  let statusText, statusColor;
+  if (complete) { statusText = 'Goal complete'; statusColor = 'var(--floodlight-bright)'; }
+  else if (ended) { statusText = 'Period ended'; statusColor = 'var(--muted)'; }
+  else if (onTrack) { statusText = 'On track'; statusColor = 'var(--sage)'; }
+  else { statusText = 'Behind pace'; statusColor = 'var(--danger)'; }
+
+  return { hoursLogged, pct, daysTotal, daysElapsed, daysLeft, complete, ended, active, onTrack, hoursPerWeekNeeded, statusText, statusColor };
+}
+
+// Credits each session's time to the category (or categories) it was
+// logged under. When a session covers more than one technique, it carries
+// a per-category split (in seconds) recorded at save time, so the hours
+// divide up rather than double-count. Older/legacy sessions without a
+// split fall back to crediting the full duration to every selected
+// category.
+function computeCategoryBreakdown(sessions) {
+  const map = {};
+  sessions.forEach((s) => {
+    if (s.categorySplit && Object.keys(s.categorySplit).length) {
+      Object.entries(s.categorySplit).forEach(([id, secs]) => {
+        map[id] = (map[id] || 0) + secs;
+      });
+    } else {
+      const cats = sessionCategories(s);
+      const ids = cats.length ? cats : ['other'];
+      ids.forEach((id) => { map[id] = (map[id] || 0) + s.durationSeconds; });
+    }
+  });
+  return Object.entries(map)
+    .map(([id, secs]) => Object.assign({}, categoryOf(id), { seconds: secs }))
+    .sort((a, b) => b.seconds - a.seconds);
+}
+
+function pitchBar(pct, height, showMarker) {
+  height = height || 10;
+  showMarker = showMarker !== false;
+  const clamped = clamp(pct, 0, 100);
+  return `
+    <div class="pitch-bar" style="height:${height}px;">
+      <div class="pitch-bar-fill" style="width:${clamped}%; height:100%; ${clamped > 1 ? `box-shadow:0 0 10px rgba(232,163,61,0.45);` : ''}"></div>
+      ${showMarker ? `<div class="pitch-bar-marker" style="left:${clamped}%; width:${height + 6}px; height:${height + 6}px;"></div>` : ''}
+    </div>`;
+}
+
+function statPanel(label, value, sub) {
+  return `
+    <div class="stat-panel">
+      <div class="stat-label">${escapeHtml(label)}</div>
+      <div class="stat-value">${value}</div>
+      ${sub ? `<div class="stat-sub">${escapeHtml(sub)}</div>` : ''}
+    </div>`;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Storage                                                                  */
+/* ---------------------------------------------------------------------- */
+
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to load saved data', e);
+    return null;
+  }
+}
+
+function saveAll() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      sessions: state.sessions,
+      goals: state.goals,
+      settings: state.settings,
+      timer: state.timer,
+    }));
+  } catch (e) {
+    console.error('Failed to save data', e);
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* State                                                                    */
+/* ---------------------------------------------------------------------- */
+
+const saved = loadAll();
+
+const state = {
+  tab: 'timer',
+  sessions: (saved && Array.isArray(saved.sessions)) ? saved.sessions : [],
+  goals: (saved && Array.isArray(saved.goals)) ? saved.goals : [],
+  settings: (saved && saved.settings && saved.settings.targetHours) ? saved.settings : { targetHours: DEFAULT_TARGET_HOURS },
+  timer: (saved && saved.timer) ? saved.timer : { isRunning: false, startedAt: null, accumulatedSeconds: 0 },
+  isFinishing: false,
+  pendingCategories: [],
+  showAddGoal: false,
+  confirmDeleteGoalId: null,
+  confirmDeleteSessionId: null,
+  splitError: '',
+};
+
+let tickInterval = null;
+
+function startTicking() {
+  if (tickInterval) return;
+  tickInterval = setInterval(() => {
+    const el = document.getElementById('timerDisplay');
+    if (el && state.timer.isRunning) {
+      const displaySeconds = state.timer.accumulatedSeconds + (Date.now() - state.timer.startedAt) / 1000;
+      el.textContent = formatHMS(displaySeconds);
+    }
+  }, 1000);
+}
+
+function stopTicking() {
+  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Actions                                                                  */
+/* ---------------------------------------------------------------------- */
+
+function handleStartOrResume() {
+  state.timer.isRunning = true;
+  state.timer.startedAt = Date.now();
+  saveAll();
+  render();
+  startTicking();
+}
+
+function handlePause() {
+  state.timer.accumulatedSeconds += state.timer.startedAt ? (Date.now() - state.timer.startedAt) / 1000 : 0;
+  state.timer.isRunning = false;
+  state.timer.startedAt = null;
+  stopTicking();
+  saveAll();
+  render();
+}
+
+function handleFinish() {
+  if (state.timer.isRunning && state.timer.startedAt) {
+    state.timer.accumulatedSeconds += (Date.now() - state.timer.startedAt) / 1000;
+  }
+  state.timer.isRunning = false;
+  state.timer.startedAt = null;
+  stopTicking();
+  state.isFinishing = true;
+  state.pendingCategories = [];
+  state.splitError = '';
+  saveAll();
+  render();
+}
+
+function togglePendingCategory(id) {
+  const i = state.pendingCategories.indexOf(id);
+  if (i >= 0) state.pendingCategories.splice(i, 1);
+  else state.pendingCategories.push(id);
+  state.splitError = '';
+  render();
+}
+
+function handleSaveSession() {
+  const durationSeconds = Math.round(state.timer.accumulatedSeconds);
+  const notesEl = document.getElementById('notesInput');
+  const notes = notesEl ? notesEl.value.trim() : '';
+
+  let categorySplit = null;
+  if (state.pendingCategories.length > 1) {
+    const totalMinutes = Math.max(1, Math.round(durationSeconds / 60));
+    let sum = 0;
+    const entered = {};
+    state.pendingCategories.forEach((id) => {
+      const inputEl = document.getElementById('split-' + id);
+      const v = inputEl ? Math.max(0, parseInt(inputEl.value, 10) || 0) : 0;
+      entered[id] = v;
+      sum += v;
+    });
+    if (sum !== totalMinutes) {
+      state.splitError = `The split needs to add up to ${totalMinutes} min (currently ${sum} min).`;
+      render();
+      return;
+    }
+    categorySplit = {};
+    Object.entries(entered).forEach(([id, mins]) => { categorySplit[id] = mins * 60; });
+  }
+
+  if (durationSeconds > 0) {
+    state.sessions.push({
+      id: uid(),
+      date: new Date().toISOString(),
+      durationSeconds,
+      categories: state.pendingCategories.slice(),
+      categorySplit,
+      notes,
+    });
+  }
+  state.timer = { isRunning: false, startedAt: null, accumulatedSeconds: 0 };
+  state.isFinishing = false;
+  state.pendingCategories = [];
+  state.splitError = '';
+  saveAll();
+  render();
+}
+
+function handleDiscardSession() {
+  state.timer = { isRunning: false, startedAt: null, accumulatedSeconds: 0 };
+  state.isFinishing = false;
+  state.pendingCategories = [];
+  state.splitError = '';
+  saveAll();
+  render();
+}
+
+function commitTarget() {
+  const el = document.getElementById('targetHoursInput');
+  if (!el) return;
+  const parsed = parseFloat(el.value);
+  if (isFinite(parsed) && parsed > 0) {
+    state.settings.targetHours = parsed;
+    saveAll();
+  }
+  render();
+}
+
+function setSplitEven() {
+  const totalMinutes = Math.max(1, Math.round(state.timer.accumulatedSeconds / 60));
+  const n = state.pendingCategories.length;
+  if (!n) return;
+  const base = Math.floor(totalMinutes / n);
+  let remainder = totalMinutes - base * n;
+  state.pendingCategories.forEach((id) => {
+    const el = document.getElementById('split-' + id);
+    if (!el) return;
+    let v = base;
+    if (remainder > 0) { v += 1; remainder -= 1; }
+    el.value = v;
+  });
+  updateSplitTotalDisplay();
+}
+
+function updateSplitTotalDisplay() {
+  const totalEl = document.getElementById('splitTotal');
+  if (!totalEl) return;
+  const totalMinutes = Math.max(1, Math.round(state.timer.accumulatedSeconds / 60));
+  let sum = 0;
+  state.pendingCategories.forEach((id) => {
+    const el = document.getElementById('split-' + id);
+    sum += el ? Math.max(0, parseInt(el.value, 10) || 0) : 0;
+  });
+  totalEl.textContent = `Total: ${sum} / ${totalMinutes} min`;
+  totalEl.style.color = sum === totalMinutes ? 'var(--sage)' : 'var(--danger)';
+}
+
+function showAddGoalToggle() {
+  state.showAddGoal = !state.showAddGoal;
+  render();
+}
+
+function quickSetGoalEnd(months) {
+  const startEl = document.getElementById('newGoalStart');
+  const endEl = document.getElementById('newGoalEnd');
+  if (!startEl || !endEl) return;
+  endEl.value = addMonthsToKey(startEl.value, months);
+}
+
+function handleAddGoal() {
+  const labelEl = document.getElementById('newGoalLabel');
+  const targetEl = document.getElementById('newGoalTarget');
+  const startEl = document.getElementById('newGoalStart');
+  const endEl = document.getElementById('newGoalEnd');
+  const targetHours = parseFloat(targetEl.value);
+  let start = startEl.value || localDateKey();
+  let end = endEl.value;
+  if (!(end > start)) end = addDaysToKey(start, 1);
+  if (!(targetHours > 0)) return;
+  state.goals.push({
+    id: uid(),
+    label: (labelEl.value || '').trim() || 'Training goal',
+    targetHours,
+    startDate: start,
+    endDate: end,
+    createdAt: new Date().toISOString(),
+  });
+  state.showAddGoal = false;
+  saveAll();
+  render();
+}
+
+function requestDeleteGoal(id) {
+  state.confirmDeleteGoalId = id;
+  render();
+}
+
+function cancelDeleteGoal() {
+  state.confirmDeleteGoalId = null;
+  render();
+}
+
+function confirmDeleteGoal(id) {
+  state.goals = state.goals.filter((g) => g.id !== id);
+  state.confirmDeleteGoalId = null;
+  saveAll();
+  render();
+}
+
+function requestDeleteSession(id) {
+  state.confirmDeleteSessionId = id;
+  render();
+}
+
+function cancelDeleteSession() {
+  state.confirmDeleteSessionId = null;
+  render();
+}
+
+function confirmDeleteSession(id) {
+  state.sessions = state.sessions.filter((s) => s.id !== id);
+  state.confirmDeleteSessionId = null;
+  saveAll();
+  render();
+}
+
+function handleExport() {
+  const payload = { exportedAt: new Date().toISOString(), sessions: state.sessions, goals: state.goals, settings: state.settings };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gaelic-training-log-${localDateKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data.sessions)) state.sessions = data.sessions;
+      if (Array.isArray(data.goals)) state.goals = data.goals;
+      if (data.settings && typeof data.settings.targetHours === 'number') state.settings = data.settings;
+      saveAll();
+      render();
+    } catch (err) {
+      console.error('Import failed', err);
+      alert('That file could not be read as a training log export.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Render                                                                   */
+/* ---------------------------------------------------------------------- */
+
+function render() {
+  const sessions = state.sessions;
+  const goals = state.goals;
+  const targetHours = state.settings.targetHours || DEFAULT_TARGET_HOURS;
+
+  const totalSeconds = sessions.reduce((a, s) => a + s.durationSeconds, 0);
+  const totalHours = totalSeconds / 3600;
+  const overallPct = targetHours > 0 ? (totalHours / targetHours) * 100 : 0;
+
+  const weekStart = startOfWeekMonday();
+  const monthStart = startOfMonthDate();
+  const weekSeconds = sessions.filter((s) => new Date(s.date) >= weekStart).reduce((a, s) => a + s.durationSeconds, 0);
+  const monthSeconds = sessions.filter((s) => new Date(s.date) >= monthStart).reduce((a, s) => a + s.durationSeconds, 0);
+  const longestSeconds = sessions.reduce((max, s) => Math.max(max, s.durationSeconds), 0);
+
+  const streak = (() => {
+    const dateSet = new Set(sessions.map((s) => localDateKey(new Date(s.date))));
+    let count = 0;
+    let cursor = new Date();
+    if (!dateSet.has(localDateKey(cursor))) cursor = new Date(cursor.getTime() - 86400000);
+    while (dateSet.has(localDateKey(cursor))) { count++; cursor = new Date(cursor.getTime() - 86400000); }
+    return count;
+  })();
+
+  const pace = (() => {
+    if (sessions.length === 0) return null;
+    const cutoff = Date.now() - 56 * 86400000;
+    const recentSeconds = sessions.filter((s) => new Date(s.date).getTime() >= cutoff).reduce((a, s) => a + s.durationSeconds, 0);
+    if (recentSeconds > 0) return recentSeconds / 3600 / 8;
+    const firstDate = new Date(Math.min.apply(null, sessions.map((s) => new Date(s.date).getTime())));
+    const weeksSinceFirst = Math.max(1, (Date.now() - firstDate.getTime()) / (7 * 86400000));
+    return totalHours / weeksSinceFirst;
+  })();
+
+  const hoursRemaining = Math.max(0, targetHours - totalHours);
+  const weeksRemaining = pace && pace > 0 ? hoursRemaining / pace : null;
+  const projectedDate = weeksRemaining != null ? new Date(Date.now() + weeksRemaining * 7 * 86400000) : null;
+
+  const categoryBreakdown = computeCategoryBreakdown(sessions);
+  const maxCategorySeconds = categoryBreakdown.length ? categoryBreakdown[0].seconds : 1;
+
+  const sortedGoals = goals.slice().sort((a, b) => (a.endDate < b.endDate ? -1 : 1));
+  const activeGoalsForTopBar = goals
+    .map((g) => ({ goal: g, progress: computeGoalProgress(g, sessions) }))
+    .filter(({ progress }) => progress.active && !progress.complete)
+    .sort((a, b) => (a.goal.endDate < b.goal.endDate ? -1 : 1));
+
+  const sessionGroups = (() => {
+    const sorted = sessions.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const groups = [];
+    const indexByKey = {};
+    sorted.forEach((s) => {
+      const key = localDateKey(new Date(s.date));
+      if (!(key in indexByKey)) { indexByKey[key] = groups.length; groups.push({ key, items: [] }); }
+      groups[indexByKey[key]].items.push(s);
+    });
+    return groups;
+  })();
+
+  const isSessionActive = state.timer.isRunning || state.timer.accumulatedSeconds > 0;
+  const displaySeconds = state.timer.accumulatedSeconds + (state.timer.isRunning ? Math.max(0, (Date.now() - state.timer.startedAt) / 1000) : 0);
+
+  const tabs = [
+    { id: 'timer', label: 'Timer', icon: 'clock' },
+    { id: 'progress', label: 'Progress', icon: 'trending' },
+    { id: 'goals', label: 'Goals', icon: 'target' },
+    { id: 'log', label: 'Log', icon: 'list' },
+  ];
+
+  let html = '';
+
+  html += `<div style="margin-bottom:16px;"><h1>Training Log</h1></div>`;
+
+  html += `
+    <div style="margin-bottom:${activeGoalsForTopBar.length ? 14 : 20}px;">
+      ${pitchBar(overallPct, 8)}
+      <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--muted);">
+        <span>${fmtHours(totalHours)} of ${fmtHours(targetHours)} hours</span>
+        <span>${overallPct.toFixed(1)}%</span>
+      </div>
+    </div>`;
+
+  if (activeGoalsForTopBar.length > 0) {
+    html += `<div style="margin-bottom:20px; display:flex; flex-direction:column; gap:12px;">`;
+    activeGoalsForTopBar.forEach(({ goal, progress }) => {
+      html += `
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; font-size:12px;">
+            <span style="color:var(--chalk); font-weight:600;">${escapeHtml(goal.label)}</span>
+            <span style="color:${progress.statusColor}; font-weight:600;">${progress.statusText}</span>
+          </div>
+          ${pitchBar(progress.pct, 7)}
+          <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:11px; color:var(--muted);">
+            <span>${fmtHours(progress.hoursLogged)} of ${fmtHours(goal.targetHours)} hours</span>
+            <span>${progress.pct.toFixed(1)}%</span>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<div class="tabs">`;
+  tabs.forEach((t) => {
+    html += `<button class="tab-btn ${state.tab === t.id ? 'active' : ''}" data-action="set-tab" data-id="${t.id}">${icon(t.icon)}${escapeHtml(t.label)}</button>`;
+  });
+  html += `</div>`;
+
+  /* ---------------- Timer tab ---------------- */
+  if (state.tab === 'timer') {
+    html += `<div>`;
+    html += `<div class="card" style="padding:28px 20px; text-align:center; margin-bottom:18px;">`;
+    html += `<div id="timerDisplay" class="gf-display" style="font-size:clamp(3rem, 14vw, 5.5rem); line-height:1; color:${state.timer.isRunning ? 'var(--floodlight-bright)' : 'var(--chalk)'};">${formatHMS(displaySeconds)}</div>`;
+    html += `<div style="margin-top:10px; font-size:14px; color:var(--muted);">${state.isFinishing ? 'Session finished — log what you trained' : (isSessionActive ? 'Training session in progress' : 'Ready to train')}</div>`;
+
+    if (!state.isFinishing) {
+      html += `<div style="margin-top:22px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">`;
+      if (!state.timer.isRunning && state.timer.accumulatedSeconds === 0) {
+        html += `<button class="btn-primary" data-action="start" style="padding:12px 26px;">${icon('play', 16)} Start</button>`;
+      }
+      if (!state.timer.isRunning && state.timer.accumulatedSeconds > 0) {
+        html += `<button class="btn-primary" data-action="start" style="padding:12px 22px;">${icon('play', 16)} Resume</button>`;
+        html += `<button class="btn-ghost" data-action="finish" style="padding:12px 22px;">${icon('flag', 16)} Finish</button>`;
+      }
+      if (state.timer.isRunning) {
+        html += `<button class="btn-ghost" data-action="pause" style="padding:12px 22px;">${icon('pause', 16)} Pause</button>`;
+        html += `<button class="btn-ghost" data-action="finish" style="padding:12px 22px;">${icon('flag', 16)} Finish</button>`;
+      }
+      html += `</div>`;
+    }
+
+    if (state.isFinishing) {
+      html += `<div style="margin-top:20px; text-align:left; max-width:420px; margin-left:auto; margin-right:auto;">`;
+      html += `<label class="field-label" style="margin-bottom:8px;">What did you train? Select all that apply</label>`;
+      html += `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">`;
+      CATEGORIES.forEach((c) => {
+        const selected = state.pendingCategories.includes(c.id);
+        html += `
+          <button type="button" class="chip ${selected ? 'selected' : ''}" data-action="toggle-category" data-id="${c.id}" style="border-left-color:${c.color}; ${selected ? `border-color:${c.color};` : ''}">
+            ${selected ? `<span style="color:${c.color}; font-weight:700;">✓</span>` : ''}${escapeHtml(c.label)}
+          </button>`;
+      });
+      html += `</div>`;
+
+      if (state.pendingCategories.length > 1) {
+        const totalMinutes = Math.max(1, Math.round(state.timer.accumulatedSeconds / 60));
+        html += `<div style="margin-bottom:16px;">`;
+        html += `<label class="field-label">How was the time split? (minutes)</label>`;
+        state.pendingCategories.forEach((id) => {
+          const c = categoryOf(id);
+          const base = Math.floor(totalMinutes / state.pendingCategories.length);
+          html += `
+            <div class="split-row">
+              <span class="swatch" style="background:${c.color};"></span>
+              <label for="split-${id}">${escapeHtml(c.label)}</label>
+              <input id="split-${id}" class="gf-input" type="number" min="0" value="${base}" data-action="split-input" />
+            </div>`;
+        });
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">`;
+        html += `<span id="splitTotal" style="font-size:12px;"></span>`;
+        html += `<button type="button" class="btn-quiet" data-action="split-even">Split evenly</button>`;
+        html += `</div>`;
+        if (state.splitError) {
+          html += `<div style="color:var(--danger); font-size:12px; margin-top:8px;">${escapeHtml(state.splitError)}</div>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `<label class="field-label" style="margin-bottom:6px;">Notes (optional)</label>`;
+      html += `<textarea id="notesInput" class="gf-input" placeholder="What did you work on?" rows="3" style="resize:vertical;"></textarea>`;
+      html += `<div style="display:flex; gap:10px; margin-top:12px; justify-content:flex-end;">`;
+      html += `<button class="btn-ghost" data-action="discard">Discard</button>`;
+      html += `<button class="btn-primary" data-action="save-session">Save session</button>`;
+      html += `</div>`;
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+
+    html += `<div style="display:flex; gap:10px; flex-wrap:wrap;">`;
+    html += statPanel('Today', fmtDurationShort(sessions.filter(s => localDateKey(new Date(s.date)) === localDateKey()).reduce((a,s)=>a+s.durationSeconds,0)));
+    html += statPanel('Current streak', `${streak} day${streak === 1 ? '' : 's'}`);
+    if (pace != null && projectedDate) {
+      html += statPanel('At current pace', `${projectedDate.getFullYear()}`, `~${fmtHours(pace, 1)}h/week`);
+    }
+    html += `</div>`;
+    html += `</div>`;
+  }
+
+  /* ---------------- Progress tab ---------------- */
+  if (state.tab === 'progress') {
+    html += `<div>`;
+    html += `<div class="card" style="padding:20px; margin-bottom:16px;">`;
+    html += `<div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:10px;">`;
+    html += `<div class="gf-display" style="font-size:clamp(2.2rem, 8vw, 3.4rem); color:var(--floodlight-bright);">${fmtHours(totalHours)}<span style="font-size:0.4em; color:var(--muted); margin-left:6px;">hours logged</span></div>`;
+    html += `<div style="text-align:right;">`;
+    html += `<label class="field-label" style="margin-bottom:4px;">Long-term target (hours)</label>`;
+    html += `<input id="targetHoursInput" class="gf-input" type="number" value="${targetHours}" data-action="commit-target" style="width:100px; text-align:right;" />`;
+    html += `</div></div>`;
+    html += `<div style="margin:16px 0 8px;">${pitchBar(overallPct, 12)}</div>`;
+    html += `<div style="font-size:13px; color:var(--muted);">${fmtHours(hoursRemaining)} hours to go — ${overallPct.toFixed(2)}% of the way there.</div>`;
+    html += `<div style="font-size:13px; color:var(--muted); margin-top:6px;">${
+      pace != null && pace > 0 && projectedDate
+        ? `At roughly ${fmtHours(pace, 1)} hours a week, you're on pace to reach ${fmtHours(targetHours)} hours around ${projectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.`
+        : 'Log a few sessions to see your pace toward the long-term goal.'
+    }</div>`;
+    html += `</div>`;
+
+    html += `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">`;
+    html += statPanel('This week', fmtDurationShort(weekSeconds));
+    html += statPanel('This month', fmtDurationShort(monthSeconds));
+    html += statPanel('Sessions logged', sessions.length);
+    html += statPanel('Longest session', longestSeconds ? fmtDurationShort(longestSeconds) : '—');
+    html += `</div>`;
+
+    html += `<div><div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Where the hours are going</div>`;
+    if (categoryBreakdown.length === 0) {
+      html += `<div class="muted" style="font-size:14px;">Nothing logged yet.</div>`;
+    }
+    html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+    categoryBreakdown.forEach((c) => {
+      html += `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:150px; font-size:13px; color:var(--chalk); flex-shrink:0;">${escapeHtml(c.label)}</div>
+          <div style="flex:1; height:8px; background:var(--surface); border-radius:3px; border:1px solid var(--line); overflow:hidden;">
+            <div style="width:${(c.seconds / maxCategorySeconds) * 100}%; height:100%; background:${c.color};"></div>
+          </div>
+          <div style="width:56px; text-align:right; font-size:13px; color:var(--muted); flex-shrink:0;">${fmtHours(c.seconds / 3600)}h</div>
+        </div>`;
+    });
+    html += `</div></div>`;
+    html += `</div>`;
+  }
+
+  /* ---------------- Goals tab ---------------- */
+  if (state.tab === 'goals') {
+    html += `<div>`;
+    html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">`;
+    html += `<div style="font-size:13px; color:var(--muted);">Period goals keep the long-term target within reach</div>`;
+    html += `<button data-action="toggle-add-goal" style="display:flex; align-items:center; gap:6px; background:${state.showAddGoal ? 'var(--surface2)' : 'var(--floodlight)'}; color:${state.showAddGoal ? 'var(--chalk)' : 'var(--bg)'}; padding:8px 14px; border-radius:4px; font-size:13px; font-weight:600;">${icon('plus', 14)} New goal</button>`;
+    html += `</div>`;
+
+    if (state.showAddGoal) {
+      const defaultStart = localDateKey();
+      const defaultEnd = addMonthsToKey(defaultStart, 3);
+      html += `<div class="card" style="margin-bottom:18px;">`;
+      html += `<label class="field-label">Goal name</label>`;
+      html += `<input id="newGoalLabel" class="gf-input" type="text" placeholder="e.g. Pre-season block" style="margin-bottom:12px;" />`;
+      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">`;
+      html += `<div style="flex:1 1 100px;"><label class="field-label">Target hours</label><input id="newGoalTarget" class="gf-input" type="number" value="100" /></div>`;
+      html += `<div style="flex:1 1 140px;"><label class="field-label">Start date</label><input id="newGoalStart" class="gf-input" type="date" value="${defaultStart}" data-action="goal-start-change" /></div>`;
+      html += `<div style="flex:1 1 140px;"><label class="field-label">End date</label><input id="newGoalEnd" class="gf-input" type="date" value="${defaultEnd}" /></div>`;
+      html += `</div>`;
+      html += `<div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">`;
+      [['1 month', 1], ['3 months', 3], ['6 months', 6], ['1 year', 12]].forEach(([label, months]) => {
+        html += `<button class="btn-quiet" data-action="quick-end" data-months="${months}">${label}</button>`;
+      });
+      html += `</div>`;
+      html += `<div style="display:flex; justify-content:flex-end;"><button class="btn-primary" data-action="add-goal">Add goal</button></div>`;
+      html += `</div>`;
+    }
+
+    if (sortedGoals.length === 0 && !state.showAddGoal) {
+      html += `<div class="muted" style="font-size:14px;">No goals set yet. Add a target to pace yourself toward the ${fmtHours(targetHours)}-hour mark.</div>`;
+    }
+
+    html += `<div style="display:flex; flex-direction:column; gap:12px;">`;
+    sortedGoals.forEach((g) => {
+      const progress = computeGoalProgress(g, sessions);
+      html += `<div class="goal-card">`;
+      if (state.confirmDeleteGoalId === g.id) {
+        html += `
+          <div class="delete-confirm" style="position:absolute; top:12px; right:12px;">
+            <span class="muted">Delete goal?</span>
+            <button class="yes" data-action="confirm-delete-goal" data-id="${g.id}">Yes</button>
+            <button class="no" data-action="cancel-delete-goal">Cancel</button>
+          </div>`;
+      } else {
+        html += `<button class="btn-icon" data-action="request-delete-goal" data-id="${g.id}" style="position:absolute; top:12px; right:12px;" aria-label="Delete goal">${icon('trash', 15)}</button>`;
+      }
+      html += `<div style="font-size:15px; font-weight:600; margin-bottom:2px; padding-right:60px;">${escapeHtml(g.label)}</div>`;
+      html += `<div style="font-size:12px; color:var(--muted); margin-bottom:12px;">${new Date(g.startDate + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${new Date(g.endDate + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</div>`;
+      html += pitchBar(progress.pct, 9);
+      html += `<div style="display:flex; justify-content:space-between; margin-top:8px; font-size:13px;">`;
+      html += `<span class="muted">${fmtHours(progress.hoursLogged)}h of ${fmtHours(g.targetHours)}h</span>`;
+      html += `<span style="color:${progress.statusColor}; font-weight:600; display:flex; align-items:center; gap:4px;">${progress.complete ? icon('trophy', 13) : ''}${progress.statusText}</span>`;
+      html += `</div>`;
+      if (!progress.complete && !progress.ended && progress.daysLeft > 0) {
+        html += `<div style="font-size:12px; color:var(--muted); margin-top:6px;">~${fmtHours(progress.hoursPerWeekNeeded, 1)}h/week needed, ${progress.daysLeft} day${progress.daysLeft === 1 ? '' : 's'} left</div>`;
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+    html += `</div>`;
+  }
+
+  /* ---------------- Log tab ---------------- */
+  if (state.tab === 'log') {
+    html += `<div>`;
+    html += `<div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:16px;">`;
+    html += `<input id="importFileInput" type="file" accept="application/json" style="display:none;" />`;
+    html += `<button class="btn-quiet" data-action="trigger-import" style="display:flex; align-items:center; gap:6px; padding:7px 12px;">${icon('upload', 13)} Import</button>`;
+    html += `<button class="btn-quiet" data-action="export" style="display:flex; align-items:center; gap:6px; padding:7px 12px;">${icon('download', 13)} Export</button>`;
+    html += `</div>`;
+
+    if (sessionGroups.length === 0) {
+      html += `<div class="muted" style="font-size:14px;">No sessions logged yet. Start the timer to log your first one.</div>`;
+    }
+
+    html += `<div style="display:flex; flex-direction:column; gap:18px;">`;
+    sessionGroups.forEach((group) => {
+      html += `<div><div style="font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600;">${fmtDateLabel(group.key)}</div>`;
+      html += `<div style="display:flex; flex-direction:column; gap:6px;">`;
+      group.items.forEach((s) => {
+        const cats = sessionCategories(s);
+        const primaryCat = categoryOf(cats[0]);
+        const label = cats.length > 1 ? cats.map(id => categoryOf(id).label).join(', ') : primaryCat.label;
+        html += `<div class="session-row" style="border-left:4px solid ${primaryCat.color};">`;
+        html += `<div style="min-width:0;">`;
+        html += `<div style="font-size:13px; font-weight:600;">${escapeHtml(label)}</div>`;
+        html += `<div style="font-size:12px; color:var(--muted); margin-top:2px;">${fmtDurationShort(s.durationSeconds)} · ${new Date(s.date).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>`;
+        if (s.categorySplit) {
+          const parts = Object.entries(s.categorySplit).map(([id, secs]) => `${categoryOf(id).label} ${fmtDurationShort(secs)}`);
+          html += `<div style="font-size:12px; color:var(--muted); margin-top:4px;">${escapeHtml(parts.join(' · '))}</div>`;
+        }
+        if (s.notes) html += `<div style="font-size:12px; color:var(--muted); margin-top:4px;">${escapeHtml(s.notes)}</div>`;
+        html += `</div>`;
+        if (state.confirmDeleteSessionId === s.id) {
+          html += `
+            <div class="delete-confirm">
+              <button class="yes" data-action="confirm-delete-session" data-id="${s.id}">Yes</button>
+              <button class="no" data-action="cancel-delete-session">Cancel</button>
+            </div>`;
+        } else {
+          html += `<button class="btn-icon" data-action="request-delete-session" data-id="${s.id}" style="flex-shrink:0;" aria-label="Delete session">${icon('trash', 14)}</button>`;
+        }
+        html += `</div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+    html += `</div>`;
+  }
+
+  document.getElementById('app').innerHTML = html;
+
+  if (state.tab === 'timer' && state.timer.isRunning) startTicking();
+  else stopTicking();
+
+  if (state.isFinishing && state.pendingCategories.length > 1) {
+    updateSplitTotalDisplay();
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Event delegation                                                         */
+/* ---------------------------------------------------------------------- */
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  switch (action) {
+    case 'set-tab': state.tab = id; render(); break;
+    case 'start': handleStartOrResume(); break;
+    case 'pause': handlePause(); break;
+    case 'finish': handleFinish(); break;
+    case 'toggle-category': togglePendingCategory(id); break;
+    case 'split-even': setSplitEven(); break;
+    case 'discard': handleDiscardSession(); break;
+    case 'save-session': handleSaveSession(); break;
+    case 'toggle-add-goal': showAddGoalToggle(); break;
+    case 'quick-end': quickSetGoalEnd(parseInt(btn.dataset.months, 10)); break;
+    case 'add-goal': handleAddGoal(); break;
+    case 'request-delete-goal': requestDeleteGoal(id); break;
+    case 'cancel-delete-goal': cancelDeleteGoal(); break;
+    case 'confirm-delete-goal': confirmDeleteGoal(id); break;
+    case 'request-delete-session': requestDeleteSession(id); break;
+    case 'cancel-delete-session': cancelDeleteSession(); break;
+    case 'confirm-delete-session': confirmDeleteSession(id); break;
+    case 'export': handleExport(); break;
+    case 'trigger-import': {
+      const fileInput = document.getElementById('importFileInput');
+      if (fileInput) fileInput.click();
+      break;
+    }
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.dataset && e.target.dataset.action === 'split-input') {
+    updateSplitTotalDisplay();
+  }
+});
+
+document.addEventListener('focusout', (e) => {
+  if (e.target && e.target.id === 'targetHoursInput') commitTarget();
+  if (e.target && e.target.id === 'newGoalEnd') {
+    const startEl = document.getElementById('newGoalStart');
+    if (startEl && !(e.target.value > startEl.value)) e.target.value = addDaysToKey(startEl.value, 1);
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'importFileInput') {
+    const file = e.target.files && e.target.files[0];
+    handleImportFile(file);
+    e.target.value = '';
+  }
+});
+
+/* ---------------------------------------------------------------------- */
+/* Init                                                                      */
+/* ---------------------------------------------------------------------- */
+
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
